@@ -15,6 +15,7 @@ const submissionRoutes =
 require(
   "./routes/submissionRoutes"
 );
+const liveRoutes       = require("./routes/liveRoutes");
 
 
 
@@ -52,4 +53,6 @@ app.use(
   "/api/submissions",
   submissionRoutes
 );
+
+app.use("/api/live", liveRoutes);
 module.exports = app;
