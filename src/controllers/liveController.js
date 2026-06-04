@@ -55,23 +55,13 @@ function calcSpeedBonus(answeredAt, startedAt, maxBonus) {
 }
 
 function buildLeaderboard() {
-  const rows = Object.entries(liveState.answers).map(([userId, info]) => {
-    // lastAnsweredAt = timestamp of most recent answer across all questions
-    const lastAnsweredAt = info.lastAnsweredAt || null;
-    return {
-      userId,
-      name:          info.name || "???",
-      totalScore:    info.totalScore || 0,
-      lastAnsweredAt,                          // ISO string, shown in UI
-    };
-  });
-  // Sort: higher score first; tie-break = earlier lastAnsweredAt wins
-  rows.sort((a, b) => {
-    if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore;
-    if (!a.lastAnsweredAt) return 1;
-    if (!b.lastAnsweredAt) return -1;
-    return new Date(a.lastAnsweredAt) - new Date(b.lastAnsweredAt);
-  });
+  // Pull all attempt scores for this quiz from memory answers map
+  const rows = Object.entries(liveState.answers).map(([userId, info]) => ({
+    userId,
+    name:       info.name || "???",
+    totalScore: info.totalScore || 0,
+  }));
+  rows.sort((a, b) => b.totalScore - a.totalScore);
   return rows;
 }
 
@@ -377,22 +367,15 @@ exports.submitLiveAnswer = async (req, res) => {
       : 0;
     const pointsEarned = baseMark + speedBonus;
 
-    userState.totalScore    = (userState.totalScore || 0) + pointsEarned;
-    userState.lastAnswer    = { answer, isCorrect, marksAwarded: baseMark };
-    userState.lastAnsweredAt = answeredAt.toISOString();   // ← store timestamp
+    userState.totalScore   = (userState.totalScore || 0) + pointsEarned;
+    userState.lastAnswer   = { answer, isCorrect, marksAwarded: baseMark };
     if (!userState.answeredQuestions) userState.answeredQuestions = [];
     userState.answeredQuestions.push(questionId);
 
-    // Broadcast live answer count + real-time leaderboard to EVERYONE
+    // Broadcast live answer count update to admin
     const answeredCount = Object.values(liveState.answers)
       .filter(u => u.answeredQuestions?.includes(questionId)).length;
     broadcast("answer_count", { answeredCount, total: Object.keys(liveState.answers).length });
-    broadcast("live_leaderboard", {           // ← new: real-time leaderboard event
-      leaderboard:    buildLeaderboard(),
-      answeredCount,
-      total:          Object.keys(liveState.answers).length,
-      questionIndex:  liveState.currentIndex,
-    });
 
     res.json({
       isCorrect,
