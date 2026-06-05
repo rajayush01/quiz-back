@@ -16,7 +16,7 @@ require(
   "./routes/submissionRoutes"
 );
 const liveRoutes       = require("./routes/liveRoutes");
-
+const openQuestionRoutes = require("./routes/openQuestionRoutes");
 
 
 
@@ -55,4 +55,5 @@ app.use(
 );
 
 app.use("/api/live", liveRoutes);
+app.use("/api/open-question", openQuestionRoutes);
 module.exports = app;
